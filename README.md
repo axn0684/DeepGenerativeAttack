@@ -1,90 +1,99 @@
-# Deep Generative Attack on Offline Signature verification
+# Deep Generative Attacks and Countermeasures for Offline Signature Verification
 
-## Paper Overview
+Code for the IJCB 2024 paper **Deep Generative Attacks and Countermeasures for Data-Driven Offline Signature Verification**
+([IEEE](https://ieeexplore.ieee.org/document/10744496) · [arXiv](https://arxiv.org/abs/2312.00987)).
 
-This is the code for IJCB 2024 paper Deep Generative Attacks and Countermeasures for Data-Driven Writer-Dependent Static Signature Verification.
+An Ngo, Rajesh Kumar, Phuong Cao
 
-### Research Purpose
+## Overview
 
-This study explores the use of modern Deep Generative Models (DGMs) for both challenging ASV systems and crafting effective countermeasures. Our research focuses on:
+Deep learning-based signature verification (DASV) systems are usually tested against human forgeries. We ask how they hold up against forgeries made by deep generative models, and how to defend them.
 
-1. Creation of synthetic datasets using VAE and CGAN, derived from CEDAR, BHSig260-B, and BHSig260-H collections.
-2. Evaluation of the resilience of state-of-the-art DASV models, including DenseNet201, ResNet152V2, and Xception architectures, against various attack scenarios.
-3. Development of a novel countermeasure: retraining DASV models with SSIM-optimized synthetic forgeries.
+- **Attack.** We train a Conditional GAN (CGAN) and a Variational Autoencoder (VAE) on individual skilled forgeries from CEDAR, BHSig260-Bengali and BHSig260-Hindi to produce synthetic forgeries. Against DenseNet201, ResNet152V2 and Xception verifiers, these attacks raise the false acceptance rate (FAR) from about 3% to about 25%.
+- **Explanation.** The structural similarity (SSIM) between a synthetic forgery and its source is strongly negatively correlated with FAR. We use this to control attack strength (VAE-SSIM).
+- **Countermeasure.** Retraining verifiers with synthetic forgeries brings the attack success rate back under 3%.
 
-### Significance of the Research
-
-This study makes several important contributions to the field of signature verification and biometric security:
-
-- Our research provides a comprehensive assessment of deep learning-based signature verification systems' robustness against a wide range of attacks, which is crucial for understanding the true security landscape of these systems.
-
-- We discovered a strong negative correlation between the structural similarity (SSIM) of generated forgeries and false acceptance rates (FARs) allows for better control over the quality of generated forgeries, enabling the development of more effective attacks and, crucially, more robust countermeasures.
-
-- The retraining strategy we present, using synthetic forgeries, significantly enhances the robustness of baseline models, demonstrating a practical path forward in defending against sophisticated attacks.
-
-These contributions collectively advance our understanding of the vulnerabilities in current signature verification systems and provide concrete strategies for improving their security. The insights gained from this research have broad implications for the development of more robust biometric security systems in the future and applicability to other fields.
-
-### Real-World Applications Beyond DASV
-
-While our research focuses on signature verification, the implications extend to various domains:
-
-- Biometric Security: The techniques developed could be applied to other biometric verification systems, such as facial recognition or fingerprint scanning.
-- Document Verification: Enhancing the security of legal, financial, and medical document authentication processes.
-- Digital Identity Protection: Improving safeguards against identity theft and fraud in online transactions.
-
-## Code execution
-
-### Environment requirements
-
-To install the environment requirements, please run:
-
-```shell
-pip install -r setup.py
-```
-
-### Dataset
-
-As discussed in the paper, we used CGAN and VAE to generate synthetic signatures. The codes included in this repository is made for the CEDAR dataset from https://www.kaggle.com/datasets/shreelakshmigp/cedardataset. Downloaded dataset should be placed in the current directory.
-
-### Synthetic Image Generation
-
-The datasets are preprocessed using OTSU binarializing as put in file utils.py.
-
-To start image generation process, please run:
-
-```py
-python CGAN\ generation.py # Using CGAN
-python VAE\ generation.py  # Using VAE
-python VAE\ SSI.py   # Using VAE-SSI controlled
-```
-
-For controlled SSIM generation with VAE as discussed in the paper, see the VAE SSI file.
-
-### Preprocessing and training/testing data for DASV baselines
-
-Datasets used to train and test the DASV baselines include:
-
-- Original CEDAR dataset: [link](https://www.kaggle.com/datasets/shreelakshmigp/cedardataset)
-- Synthetic dataset: Generate from the above section or download from [link](https://drive.google.com/drive/folders/1KbbJ5pCx9CVjlFgt28j4bY9KaFcELHb_). The generated data folders got 9 generated images for each forgery signatures from CEDAR.
-
-To preprocess the data, run the file preprocess_data.py.
-
-After running the files, the user should get 3 numpy files containing the processed real, forg and generated data as well as the average SSIM score for the generated data.
-
-Follow the instructions from the file DenseNet201_single.ipynb to run the baseline model DenseNet201 and test it with the generated attack. For the testing with retrained, see the demo in DenseNet201_cgan_retrain_cgan file.ipynb. Similar preprocessing, training/testing protocols are done with other datasets, generated datasets and model architectures.
-
-### Synthetic data from BHSIG260 and CEDAR datasets links:
-
-The synthetic data included in the paper are located in [link](https://drive.google.com/drive/folders/1KbbJ5pCx9CVjlFgt28j4bY9KaFcELHb_).
-
-# Citations
+## Repository layout
 
 ```
-@inproceedings{ngo2024dgac,
-    title={Deep Generative Attacks and Countermeasures for Data-Driven Offline Signature Verification},
-    author={Ngo, An and Kumar, Rajesh and Cao, MinhPhuong},
-    booktitle={2024 IEEE International Joint Conference on Biometrics (IJCB 2024)},
-    year={2024},
-    organization={IEEE}
+sigattack/
+  data.py        image loading, Otsu binarization, SSIM
+  cgan.py        conditional GAN (generator, discriminator, training)
+  vae.py         VAE and SSIM-controlled sampling
+generate.py      train a generative model per forgery and save synthetic forgeries
+preprocess.py    turn CEDAR + synthetic images into .npy arrays
+evaluate.py      train writer-dependent verifiers and report FAR / FRR
+```
+
+## Setup
+
+```bash
+pip install -r requirements.txt
+```
+
+A GPU is strongly recommended. The generative models are fully connected and run on signatures up to 512x512 pixels.
+
+## Data
+
+Download CEDAR from [Kaggle](https://www.kaggle.com/datasets/shreelakshmigp/cedardataset) and arrange it as:
+
+```
+data/CEDAR/
+  full_org/   original_<writer>_<sample>.png    (55 writers x 24 genuine)
+  full_forg/  forgeries_<writer>_<sample>.png   (55 writers x 24 skilled forgeries)
+```
+
+The synthetic forgeries used in the paper (CEDAR and BHSig260) can be downloaded from [Google Drive](https://drive.google.com/drive/folders/1KbbJ5pCx9CVjlFgt28j4bY9KaFcELHb_), so you can skip step 1 below. Each folder contains 9 synthetic images per skilled forgery.
+
+## Usage
+
+### 1. Generate synthetic forgeries
+
+A separate model is trained on each skilled forgery, then sampled 9 times.
+
+```bash
+python generate.py --method cgan     --input data/CEDAR/full_forg --output generated/cgan_CEDAR_forg
+python generate.py --method vae      --input data/CEDAR/full_forg --output generated/vae_CEDAR_forg
+python generate.py --method vae-ssim --input data/CEDAR/full_forg --output generated/vaessim_CEDAR_forg
+```
+
+`vae-ssim` stops training once a sample's SSIM to the source forgery falls inside `[--ssim-min, --ssim-max]` (default 0.03–0.2). It then keeps only samples inside that band. Interrupted runs resume where they stopped.
+
+### 2. Preprocess
+
+Signatures are Otsu-binarized, resized to 224x224 and stacked into arrays:
+
+```bash
+python preprocess.py --cedar data/CEDAR --generated generated/cgan_CEDAR_forg --out data
+```
+
+This writes `data/CEDAR_genuine.npy`, `data/CEDAR_forg.npy` and `data/cgan_CEDAR_forg.npy`, and prints the average SSIM between synthetic forgeries and their sources.
+
+### 3. Evaluate attacks and the countermeasure
+
+For each writer, a frozen ImageNet backbone with a dense head is trained on 16 genuine signatures and 16 skilled forgeries. It is then tested on the remaining 8 + 8 and on the 72 synthetic forgeries made from the held-out forgeries.
+
+```bash
+# Baseline verifier under attack
+python evaluate.py --synthetic data/cgan_CEDAR_forg.npy --out results/cgan.csv
+
+# Countermeasure: add one synthetic forgery per training forgery as a negative
+python evaluate.py --synthetic data/cgan_CEDAR_forg.npy --retrain --out results/cgan_retrain.csv
+```
+
+Use `--backbone resnet152v2` or `--backbone xception` for the other verifiers. The CSV lists FAR, FRR and synthetic FAR per writer at `--threshold` (default 0.5), plus the mean.
+
+The same protocol applies to BHSig260 after arranging its images with the same naming scheme. Pass `--writers` and `--samples` to match.
+
+## Citation
+
+```bibtex
+@inproceedings{ngo2024deep,
+  title     = {Deep Generative Attacks and Countermeasures for Data-Driven Offline Signature Verification},
+  author    = {Ngo, An and Kumar, Rajesh and Cao, Phuong},
+  booktitle = {2024 IEEE International Joint Conference on Biometrics (IJCB)},
+  pages     = {1--10},
+  year      = {2024},
+  doi       = {10.1109/IJCB62174.2024.10744496}
 }
 ```

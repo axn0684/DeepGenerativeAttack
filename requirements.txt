@@ -1,8 +1,7 @@
 torch
 torchvision
+numpy
 pillow
-easydict
-tensorflow
-keras
 opencv-python
-scikit-learn
+scikit-image
+tensorflow
